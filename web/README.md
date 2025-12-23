@@ -148,6 +148,21 @@ Optional for SMS provider (Twilio preferred):
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
 - One of: `TWILIO_MESSAGING_SERVICE_SID` or `SMS_SENDER_ID`
 
+#### Branded SMS Sender (Alphanumeric Sender ID)
+
+To display "Mintpass" instead of a phone number as the SMS sender:
+
+1. **Via Messaging Service (recommended)**: In Twilio Console, create a Messaging Service. Under Sender Pool, add an Alphanumeric Sender ID (e.g., "Mintpass"). Use the Messaging Service SID as `TWILIO_MESSAGING_SERVICE_SID`.
+
+2. **Via direct sender ID**: Set `SMS_SENDER_ID` to an alphanumeric string like "Mintpass" instead of a phone number.
+
+**Requirements**: 1-11 characters, must include at least one letter, only letters/digits/spaces allowed.
+
+**Limitations**:
+- One-way only (recipients cannot reply)
+- Not supported in all countries; US/Canada require a phone number or A2P 10DLC registration
+- Check [Twilio's country support](https://support.twilio.com/hc/en-us/articles/223133767) before using
+
 Optional for on-chain mint (Base Sepolia):
 - `MINTER_PRIVATE_KEY`
 - `MINTPASSV1_ADDRESS_BASE_SEPOLIA`

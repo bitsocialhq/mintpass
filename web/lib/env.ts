@@ -15,7 +15,17 @@ const envSchema = z.object({
   // Secrets and provider keys (server-only)
   MINTER_PRIVATE_KEY: z.string().min(1).optional(),
   SMS_PROVIDER_API_KEY: z.string().optional(), // legacy/generic
-  SMS_SENDER_ID: z.string().optional(),        // generic sender id/from
+  // Twilio alphanumeric sender ID: 1-11 chars, must have at least one letter,
+  // only letters/digits/spaces allowed
+  SMS_SENDER_ID: z.string()
+    .refine((val) => {
+      if (!val) return true; // optional
+      // If it starts with + it's a phone number, skip alphanumeric validation
+      if (val.startsWith('+')) return true;
+      // Alphanumeric: max 11 chars, at least one letter, only [A-Za-z0-9 ]
+      return val.length <= 11 && /[A-Za-z]/.test(val) && /^[A-Za-z0-9 ]+$/.test(val);
+    }, 'Alphanumeric sender ID must be 1-11 characters, contain at least one letter, and only use letters, digits, or spaces')
+    .optional(),        // generic sender id/from
 
   // Twilio (preferred)
   TWILIO_ACCOUNT_SID: z.string().optional(),
