@@ -1,14 +1,15 @@
-import type { 
-    Challenge, 
-    ChallengeFile, 
-    ChallengeResult, 
+import type {
+    ChallengeFileInput,
+    ChallengeInput,
+    ChallengeResultInput,
+    GetChallengeArgsInput,
     SubplebbitChallengeSetting
 } from "@plebbit/plebbit-js/dist/node/subplebbit/types.js";
-import type { 
-    DecryptedChallengeRequestMessageTypeWithSubplebbitAuthor,
-    PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest 
+import type {
+    PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest
 } from "@plebbit/plebbit-js/dist/node/pubsub-messages/types.js";
 import type { Plebbit } from "@plebbit/plebbit-js/dist/node/plebbit/plebbit.js";
+import { derivePublicationFromChallengeRequest } from "@plebbit/plebbit-js/dist/node/util.js";
 import { normalize } from "viem/ens";
 import { isAddress } from "viem";
 import envPaths from "env-paths";
@@ -38,37 +39,8 @@ function getPlebbitAddressFromPublicKey(publicKey: string): string {
     return uint8ArrayToString(multihashBytes, "base58btc");
 }
 
-function derivePublicationFromChallengeRequest(
-    challengeRequestMessage: DecryptedChallengeRequestMessageTypeWithSubplebbitAuthor
-): PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest | undefined {
-    // Support all publication kinds that can trigger a challenge
-    // Order does not really matter, but keep most common first
-    const possibleKeys = [
-        "comment",
-        "vote",
-        "commentEdit",
-        "commentModeration",
-        "subplebbitEdit"
-    ] as const;
-
-    for (const key of possibleKeys) {
-        const maybe = (challengeRequestMessage as any)[key];
-        if (maybe && typeof maybe === "object") {
-            return maybe as PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest;
-        }
-    }
-
-    // Some implementations may place a generic `publication` field
-    const generic = (challengeRequestMessage as any)?.publication;
-    if (generic && typeof generic === "object") {
-        return generic as PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest;
-    }
-
-    return undefined;
-}
-
 // Challenge option inputs for subplebbit configuration
-const optionInputs = <NonNullable<ChallengeFile["optionInputs"]>>[
+const optionInputs = <NonNullable<ChallengeFileInput["optionInputs"]>>[
     {
         option: "chainTicker",
         label: "Chain Ticker",
@@ -537,22 +509,21 @@ const getAuthorWalletAddress = (publication: PublicationWithSubplebbitAuthorFrom
 /**
  * Main challenge function
  */
-const getChallenge = async (
-    subplebbitChallengeSettings: SubplebbitChallengeSetting,
-    challengeRequestMessage: DecryptedChallengeRequestMessageTypeWithSubplebbitAuthor,
-    challengeIndex: number,
-    subplebbit: any // LocalSubplebbit type
-): Promise<Challenge | ChallengeResult> => {
+const getChallenge = async ({
+    challengeSettings,
+    challengeRequestMessage,
+    subplebbit
+}: GetChallengeArgsInput): Promise<ChallengeInput | ChallengeResultInput> => {
 
-    const { 
-        chainTicker = "base", 
+    const {
+        chainTicker = "base",
         contractAddress,
         requiredTokenType = "0",
         transferCooldownSeconds = "604800", // 1 week default
         error,
         rpcUrl,
         bindToFirstAuthor = "true"
-    } = subplebbitChallengeSettings?.options || {};
+    } = challengeSettings?.options || {};
     
     // Apply sensible default contract address for supported chains if not provided
     const effectiveContractAddress = contractAddress || DEFAULT_CONTRACTS[chainTicker];
@@ -595,7 +566,7 @@ const getChallenge = async (
 
     // Single-path verification using ETH wallet only
     const firstFailure = await verifyAuthorMintPass(sharedProps);
-    if (!firstFailure) return { success: true } as ChallengeResult;
+    if (!firstFailure) return { success: true } as ChallengeResultInput;
 
     // If the only reason of failure is missing NFT ownership, present iframe challenge instead of failing immediately.
     const ownershipError = (sharedProps.error || '').replace("{authorAddress}", authorWalletAddress);
@@ -605,14 +576,14 @@ const getChallenge = async (
         // Return a Challenge requiring an answer. The answer can be an empty string "".
         // On verify, re-check NFT ownership and return the up-to-date result.
         const challenge = `https://mintpass.org/request/${authorWalletAddress}?hide-nft=true&hide-address=true`;
-        const type = <Challenge["type"]>("url/iframe");
+        const type = <ChallengeInput["type"]>("url/iframe");
         return {
             // Provide the URL to be rendered in an iframe on the client
             challenge,
             verify: async (_answer: string) => {
                 // Re-run verification after the user interacted with the iframe flow
                 const postAnswerFailure = await verifyAuthorMintPass(sharedProps);
-                if (!postAnswerFailure) return { success: true } as ChallengeResult;
+                if (!postAnswerFailure) return { success: true } as ChallengeResultInput;
 
                 const postErrorString =
                     `Author (${authorWalletAddress}) failed MintPass verification (post-answer). ` +
@@ -622,10 +593,10 @@ const getChallenge = async (
                 return {
                     success: false,
                     error: postAnswerFailure || "Failed to verify MintPass"
-                } as ChallengeResult;
+                } as ChallengeResultInput;
             },
             type
-        } as unknown as ChallengeResult; // Plebbit accepts either Challenge or ChallengeResult
+        } as unknown as ChallengeResultInput; // Plebbit accepts either Challenge or ChallengeResult
     }
 
     const errorString =
@@ -636,21 +607,20 @@ const getChallenge = async (
     return {
         success: false,
         error: firstFailure || "Failed to verify MintPass"
-    } as ChallengeResult;
+    } as ChallengeResultInput;
 };
 
 /**
  * Challenge file factory function
  */
-function ChallengeFileFactory(subplebbitChallengeSettings?: SubplebbitChallengeSetting): ChallengeFile {
-    const type = <Challenge["type"]>("url/iframe");
+function ChallengeFileFactory({ challengeSettings }: { challengeSettings: SubplebbitChallengeSetting }): ChallengeFileInput {
+    const type: ChallengeInput["type"] = "url/iframe";
 
     return {
         getChallenge,
         optionInputs,
         type,
-        description,
-        challenge: "https://mintpass.org/request/{authorAddress}?hide-nft=true&hide-address=true"
+        description
     };
 }
 

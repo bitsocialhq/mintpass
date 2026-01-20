@@ -39,7 +39,7 @@
     "@plebbit/plebbit-js": ">=0.0.0"
   },
   "devDependencies": {
-    "@plebbit/plebbit-js": "https://github.com/plebbit/plebbit-js.git#d29c607ca27200467101e64e637755565a5d6c14",
+    "@plebbit/plebbit-js": "https://github.com/plebbit/plebbit-js.git#a21d896bd55c76070758dae65dc0693d1c3726db",
     "@types/chai": "^4.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.7.8",

@@ -16,7 +16,7 @@
     "deploy:factory:testnet": "hardhat run scripts/deploy-factory.ts --network baseSepolia",
     "deploy:factory:mainnet": "hardhat run scripts/deploy-factory.ts --network base",
     "deploy:mintpass": "hardhat run scripts/deploy-mintpass-deterministic.ts",
-    "deploy:mintpass:testnet": "hardhat run scripts/deploy-mintpass-deterministic.ts --network baseSepolia", 
+    "deploy:mintpass:testnet": "hardhat run scripts/deploy-mintpass-deterministic.ts --network baseSepolia",
     "deploy:mintpass:mainnet": "hardhat run scripts/deploy-mintpass-deterministic.ts --network base",
     "verify": "hardhat verify",
     "clean": "hardhat clean",
@@ -42,7 +42,7 @@
     "mocha": "^11.7.1",
     "solhint": "^5.1.0",
     "solidity-coverage": "^0.8.1",
-    "ts-node": ">=8.0.0",
+    "ts-node": "^10.9.2",
     "typechain": "^8.3.0",
     "typescript": ">=4.5.0"
   },

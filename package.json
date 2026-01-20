@@ -44,7 +44,7 @@
   ],
   "dependencies": {
     "@keyv/sqlite": "^4.0.5",
-    "@plebbit/plebbit-js": "https://github.com/plebbit/plebbit-js.git#d29c607ca27200467101e64e637755565a5d6c14",
+    "@plebbit/plebbit-js": "https://github.com/plebbit/plebbit-js.git#a21d896bd55c76070758dae65dc0693d1c3726db",
     "env-paths": "^3.0.0",
     "keyv": "5.5.0",
     "viem": "2.0.0"
