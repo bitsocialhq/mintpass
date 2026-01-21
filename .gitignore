@@ -50,6 +50,7 @@ logs/
 .tmp/
 *.tmp
 *.temp
+RELEASE_NOTES.md
 
 # Package manager locks (keep yarn.lock if using yarn)
 package-lock.json

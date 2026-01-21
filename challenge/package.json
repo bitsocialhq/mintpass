@@ -26,7 +26,8 @@
     "test": "yarn build && ./scripts/test-with-node.sh",
     "test:manual": "yarn build && cd ../contracts && npx hardhat test ../challenge/test/mintpass-integration.test.js --network localhost",
     "clean": "rm -rf dist/",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "release-notes": "conventional-changelog -p angular -r 1 > RELEASE_NOTES.md"
   },
   "dependencies": {
     "@keyv/sqlite": "^4.0.5",
