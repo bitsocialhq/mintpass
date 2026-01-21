@@ -32,8 +32,29 @@ jobs:
       - name: Generate changelog
         run: yarn changelog
 
-      - name: Generate release notes
-        run: yarn release-notes
+      - name: Extract release notes from changelog
+        run: |
+          # Extract the version from the tag (e.g., v1.1.8 -> 1.1.8)
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          
+          # Extract the section for this version from CHANGELOG.md
+          # This uses awk to get everything between the current version header and the next version header
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]") found=1
+            }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          
+          # If empty, create a simple note
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Release ${{ github.ref_name }}" > RELEASE_NOTES.md
+          fi
+          
+          echo "Generated release notes:"
+          cat RELEASE_NOTES.md
 
       - name: Check if release exists
         id: check_release
