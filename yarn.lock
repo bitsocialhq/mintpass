@@ -1656,6 +1656,18 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
+"@mintpass/challenge@1.1.6":
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/@mintpass/challenge/-/challenge-1.1.6.tgz#91cb412585ee8febfd921135e4388c6d5e0783c9"
+  integrity sha512-SdTXxDK/Nb1tAuT0VbkEcZHmIwnmtuQojgtbKJr24nN1d8DQeMzIcjCavqeaW6MbifrRdZn1ujvDyKAjy16ENg==
+  dependencies:
+    "@keyv/sqlite" "^4.0.5"
+    env-paths "^3.0.0"
+    keyv "5.5.0"
+    multiformats "^13.1.0"
+    uint8arrays "^4.0.3"
+    viem "2.0.0"
+
 "@multiformats/base-x@^4.0.1":
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/@multiformats/base-x/-/base-x-4.0.1.tgz#95ff0fa58711789d53aefb2590a8b7a4e715d121"

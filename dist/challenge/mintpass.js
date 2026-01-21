@@ -1,3 +1,18 @@
+/**
+ * Extract the publication from a challenge request message.
+ * This function checks known publication fields (comment, vote, commentEdit, etc.)
+ * and returns the first one found.
+ */
+function derivePublicationFromChallengeRequest(request) {
+    // Known publication field names from plebbit-js DecryptedChallengeRequestPublicationSchema
+    const publicationFields = ['comment', 'vote', 'commentEdit', 'commentModeration', 'subplebbitEdit'];
+    for (const field of publicationFields) {
+        if (request[field]) {
+            return request[field];
+        }
+    }
+    throw Error("Failed to find publication on ChallengeRequest");
+}
 import { normalize } from "viem/ens";
 import { isAddress } from "viem";
 import envPaths from "env-paths";
@@ -21,29 +36,6 @@ function getPlebbitAddressFromPublicKey(publicKey) {
     prefixedPublicKey.set(publicKeyBytes, protobufPublicKeyPrefix.length);
     const multihashBytes = createMultihash(multihashIdentityCode, prefixedPublicKey).bytes;
     return uint8ArrayToString(multihashBytes, "base58btc");
-}
-function derivePublicationFromChallengeRequest(challengeRequestMessage) {
-    // Support all publication kinds that can trigger a challenge
-    // Order does not really matter, but keep most common first
-    const possibleKeys = [
-        "comment",
-        "vote",
-        "commentEdit",
-        "commentModeration",
-        "subplebbitEdit"
-    ];
-    for (const key of possibleKeys) {
-        const maybe = challengeRequestMessage[key];
-        if (maybe && typeof maybe === "object") {
-            return maybe;
-        }
-    }
-    // Some implementations may place a generic `publication` field
-    const generic = challengeRequestMessage?.publication;
-    if (generic && typeof generic === "object") {
-        return generic;
-    }
-    return undefined;
 }
 // Challenge option inputs for subplebbit configuration
 const optionInputs = [
@@ -229,34 +221,35 @@ const createViemClientForChain = async (chainTicker, rpcUrl) => {
  * Check if author has required MintPass NFT and handle transfer cooldown
  */
 const verifyAuthorMintPass = async (props) => {
-    // Prefer wallet matching the specified chainTicker, but fall back between
-    // EVM-compatible tickers (base <-> eth) if one is missing.
+    // Always use the ETH wallet entry. Do not use publication.author.address or base wallet.
     const wallets = props.publication.author.wallets || {};
-    let authorWallet = wallets[props.chainTicker];
-    if (!authorWallet && (props.chainTicker === "base" || props.chainTicker === "eth")) {
-        authorWallet = wallets[props.chainTicker === "base" ? "eth" : "base"];
-    }
+    const authorWallet = wallets["eth"];
     if (typeof authorWallet?.address !== "string") {
         return "Author wallet address is not defined. Please set your wallet address in settings.";
     }
-    // Verify wallet signature first
-    if (isStringDomain(authorWallet.address)) {
-        // Handle ENS/domain resolution
-        const resolvedWalletAddress = await props.plebbit.resolveAuthorAddress(authorWallet.address);
-        const publicationSignatureAddress = await getPlebbitAddressFromPublicKey(props.publication.signature.publicKey);
-        if (resolvedWalletAddress !== publicationSignatureAddress) {
-            return "The author wallet address's plebbit-author-address text record should resolve to the public key of the signature";
+    // Create client early, we may need it for ENS resolution
+    const viemClient = await createViemClientForChain(props.chainTicker, _getChainProviderWithSafety(props.plebbit, props.chainTicker, props.rpcUrl).urls[0]);
+    // Resolve ENS wallet address if provided
+    let addressToVerify = authorWallet.address;
+    if (isStringDomain(addressToVerify)) {
+        try {
+            const ensResolved = await viemClient.getEnsAddress({ name: normalize(addressToVerify) });
+            if (!ensResolved)
+                return "Failed to resolve ENS address";
+            addressToVerify = ensResolved;
+        }
+        catch (_e) {
+            return "Failed to resolve ENS address";
         }
     }
-    // Validate wallet address format
-    if (!isAddress(authorWallet.address)) {
+    // Validate wallet address format (ETH address after optional ENS resolution)
+    if (!isAddress(addressToVerify)) {
         return "Invalid wallet address format";
     }
-    // Verify the wallet signature
-    const viemClient = await createViemClientForChain(props.chainTicker, _getChainProviderWithSafety(props.plebbit, props.chainTicker, props.rpcUrl).urls[0]);
+    // Verify the wallet signature against the ETH address and message containing that address
     const messageToBeSigned = {};
     messageToBeSigned["domainSeparator"] = "plebbit-author-wallet";
-    messageToBeSigned["authorAddress"] = props.publication.author.address;
+    messageToBeSigned["authorAddress"] = addressToVerify;
     messageToBeSigned["timestamp"] = authorWallet.timestamp;
     // Guard signature presence
     if (!authorWallet?.signature?.signature || typeof authorWallet.timestamp !== 'number') {
@@ -265,13 +258,31 @@ const verifyAuthorMintPass = async (props) => {
     let valid = false;
     try {
         valid = await viemClient.verifyMessage({
-            address: authorWallet.address,
+            address: addressToVerify,
             message: JSON.stringify(messageToBeSigned),
             signature: authorWallet.signature.signature
         });
     }
     catch (_e) {
-        return "The signature of the wallet is invalid";
+        valid = false;
+    }
+    // Fallback: some clients may have signed with the Plebbit author identity
+    if (!valid) {
+        const altMessage = {
+            domainSeparator: "plebbit-author-wallet",
+            authorAddress: props.publication.author.address,
+            timestamp: authorWallet.timestamp
+        };
+        try {
+            valid = await viemClient.verifyMessage({
+                address: addressToVerify,
+                message: JSON.stringify(altMessage),
+                signature: authorWallet.signature.signature
+            });
+        }
+        catch (_e) {
+            valid = false;
+        }
     }
     if (!valid) {
         return "The signature of the wallet is invalid";
@@ -279,7 +290,7 @@ const verifyAuthorMintPass = async (props) => {
     // Cache timestamp to prevent replay attacks (persistent)
     await initializeStores();
     const { walletTimestampsStore } = getStores();
-    const cacheKey = props.chainTicker + authorWallet.address;
+    const cacheKey = props.chainTicker + addressToVerify;
     const lastTimestampOfAuthor = await walletTimestampsStore.get(cacheKey);
     if (typeof lastTimestampOfAuthor === "number" && lastTimestampOfAuthor > authorWallet.timestamp) {
         return "The author is trying to use an old wallet signature";
@@ -288,13 +299,15 @@ const verifyAuthorMintPass = async (props) => {
         await walletTimestampsStore.set(cacheKey, authorWallet.timestamp);
     }
     // Check MintPass NFT ownership
+    const authorIdentity = getPlebbitAddressFromPublicKey(props.publication.signature.publicKey);
     const mintPassValidationFailure = await validateMintPassOwnership({
-        authorWalletAddress: authorWallet.address,
+        authorWalletAddress: addressToVerify,
         contractAddress: props.contractAddress,
         chainTicker: props.chainTicker,
         requiredTokenType: props.requiredTokenType,
         transferCooldownSeconds: props.transferCooldownSeconds,
-        authorAddress: props.publication.author.address,
+        // Use Plebbit author identity for cooldown/binding semantics (not ENS or wallet address)
+        authorAddress: authorIdentity,
         error: props.error,
         plebbit: props.plebbit,
         rpcUrl: props.rpcUrl,
@@ -408,48 +421,22 @@ const validateMintPassOwnership = async (props) => {
     }
 };
 /**
- * Verify author ENS address owns required MintPass
+ * Get the wallet address to use for author identification
  */
-const verifyAuthorENSMintPass = async (props) => {
-    if (!props.publication.author.address.endsWith(".eth")) {
-        return "Author address is not an ENS domain";
+const getAuthorWalletAddress = (publication) => {
+    const wallets = publication.author.wallets || {};
+    const authorWallet = wallets["eth"];
+    if (typeof authorWallet?.address === "string") {
+        return authorWallet.address;
     }
-    let ownerOfAddress = null;
-    try {
-        const viemClient = await createViemClientForChain(props.chainTicker, _getChainProviderWithSafety(props.plebbit, props.chainTicker, props.rpcUrl).urls[0]);
-        ownerOfAddress = await viemClient.getEnsAddress({
-            name: normalize(props.publication.author.address)
-        });
-    }
-    catch (_e) {
-        return "Failed to resolve ENS address";
-    }
-    if (!ownerOfAddress) {
-        return "Failed to resolve ENS address";
-    }
-    // Check MintPass ownership for the ENS owner
-    const mintPassValidationFailure = await validateMintPassOwnership({
-        authorWalletAddress: ownerOfAddress,
-        contractAddress: props.contractAddress,
-        chainTicker: props.chainTicker,
-        requiredTokenType: props.requiredTokenType,
-        transferCooldownSeconds: props.transferCooldownSeconds,
-        authorAddress: props.publication.author.address,
-        error: props.error,
-        plebbit: props.plebbit,
-        rpcUrl: props.rpcUrl,
-        bindToFirstAuthor: props.bindToFirstAuthor,
-        subplebbitAddress: props.publication?.subplebbitAddress
-    });
-    return mintPassValidationFailure;
+    return "";
 };
 /**
  * Main challenge function
  */
-const getChallenge = async (subplebbitChallengeSettings, challengeRequestMessage, challengeIndex, subplebbit // LocalSubplebbit type
-) => {
+const getChallenge = async ({ challengeSettings, challengeRequestMessage, subplebbit }) => {
     const { chainTicker = "base", contractAddress, requiredTokenType = "0", transferCooldownSeconds = "604800", // 1 week default
-    error, rpcUrl, bindToFirstAuthor = "true" } = subplebbitChallengeSettings?.options || {};
+    error, rpcUrl, bindToFirstAuthor = "true" } = challengeSettings?.options || {};
     // Apply sensible default contract address for supported chains if not provided
     const effectiveContractAddress = contractAddress || DEFAULT_CONTRACTS[chainTicker];
     if (!effectiveContractAddress) {
@@ -470,6 +457,7 @@ const getChallenge = async (subplebbitChallengeSettings, challengeRequestMessage
             error: "Could not derive publication from challenge request."
         };
     }
+    const authorWalletAddress = getAuthorWalletAddress(publication);
     const sharedProps = {
         plebbit: subplebbit._plebbit,
         publication,
@@ -477,115 +465,59 @@ const getChallenge = async (subplebbitChallengeSettings, challengeRequestMessage
         contractAddress: effectiveContractAddress,
         requiredTokenType: requiredTokenTypeNum,
         transferCooldownSeconds: cooldownSeconds,
-        error: error || `You need a MintPass NFT to post in this community. Visit https://mintpass.org/request/${publication.author.address} to get verified.`,
+        error: error || `You need a MintPass NFT to post in this community. Visit https://mintpass.org/request/${authorWalletAddress} to get verified.`,
         rpcUrl,
         bindToFirstAuthor: String(bindToFirstAuthor).toLowerCase() === 'true' || String(bindToFirstAuthor) === '1'
     };
-    // Choose verification order based on presence of a wallet entry for the ticker (with EVM fallback)
-    const walletsAny = publication.author.wallets || {};
-    const isEnsAuthor = typeof publication.author.address === 'string' && publication.author.address.toLowerCase().endsWith('.eth');
-    let maybeWallet = walletsAny[chainTicker];
-    if (!maybeWallet && (chainTicker === 'base' || chainTicker === 'eth')) {
-        maybeWallet = walletsAny[chainTicker === 'base' ? 'eth' : 'base'];
-    }
-    const hasWalletForTicker = typeof maybeWallet?.address === 'string';
-    let firstFailure;
-    let secondFailure;
-    if (isEnsAuthor) {
-        // Prefer ENS first for ENS authors
-        firstFailure = await verifyAuthorENSMintPass(sharedProps);
-        if (!firstFailure)
-            return { success: true };
-        secondFailure = await verifyAuthorMintPass(sharedProps);
-        if (!secondFailure)
-            return { success: true };
-    }
-    else if (hasWalletForTicker) {
-        firstFailure = await verifyAuthorMintPass(sharedProps);
-        if (!firstFailure)
-            return { success: true };
-        secondFailure = await verifyAuthorENSMintPass(sharedProps);
-        if (!secondFailure)
-            return { success: true };
-    }
-    else {
-        // No wallet provided: try ENS first for better UX
-        firstFailure = await verifyAuthorENSMintPass(sharedProps);
-        if (!firstFailure)
-            return { success: true };
-        secondFailure = await verifyAuthorMintPass(sharedProps);
-        if (!secondFailure)
-            return { success: true };
-    }
+    // Single-path verification using ETH wallet only
+    const firstFailure = await verifyAuthorMintPass(sharedProps);
+    if (!firstFailure)
+        return { success: true };
     // If the only reason of failure is missing NFT ownership, present iframe challenge instead of failing immediately.
-    const ownershipError = (sharedProps.error || '').replace("{authorAddress}", publication.author.address);
-    const failedDueToMissingNFT = (firstFailure === ownershipError) || (secondFailure === ownershipError);
+    const ownershipError = (sharedProps.error || '').replace("{authorAddress}", authorWalletAddress);
+    const failedDueToMissingNFT = (firstFailure === ownershipError);
     if (failedDueToMissingNFT) {
         // Return a Challenge requiring an answer. The answer can be an empty string "".
         // On verify, re-check NFT ownership and return the up-to-date result.
-        const challenge = `https://mintpass.org/request/${publication.author.address}?hide-nft=true&hide-address=true`;
-        const type = ("text/url-iframe");
+        const challenge = `https://mintpass.org/request/${authorWalletAddress}?hide-nft=true&hide-address=true`;
+        const type = ("url/iframe");
         return {
             // Provide the URL to be rendered in an iframe on the client
             challenge,
             verify: async (_answer) => {
                 // Re-run verification after the user interacted with the iframe flow
-                let postAnswerFirstFailure;
-                let postAnswerSecondFailure;
-                if (isEnsAuthor) {
-                    postAnswerFirstFailure = await verifyAuthorENSMintPass(sharedProps);
-                    if (!postAnswerFirstFailure)
-                        return { success: true };
-                    postAnswerSecondFailure = await verifyAuthorMintPass(sharedProps);
-                    if (!postAnswerSecondFailure)
-                        return { success: true };
-                }
-                else if (hasWalletForTicker) {
-                    postAnswerFirstFailure = await verifyAuthorMintPass(sharedProps);
-                    if (!postAnswerFirstFailure)
-                        return { success: true };
-                    postAnswerSecondFailure = await verifyAuthorENSMintPass(sharedProps);
-                    if (!postAnswerSecondFailure)
-                        return { success: true };
-                }
-                else {
-                    postAnswerFirstFailure = await verifyAuthorENSMintPass(sharedProps);
-                    if (!postAnswerFirstFailure)
-                        return { success: true };
-                    postAnswerSecondFailure = await verifyAuthorMintPass(sharedProps);
-                    if (!postAnswerSecondFailure)
-                        return { success: true };
-                }
-                const postErrorString = `Author (${publication.author.address}) failed MintPass verification (post-answer). ` +
-                    `First: ${postAnswerFirstFailure}, Second: ${postAnswerSecondFailure}`;
+                const postAnswerFailure = await verifyAuthorMintPass(sharedProps);
+                if (!postAnswerFailure)
+                    return { success: true };
+                const postErrorString = `Author (${authorWalletAddress}) failed MintPass verification (post-answer). ` +
+                    `Error: ${postAnswerFailure}`;
                 console.log("MintPass challenge failed:", postErrorString);
                 return {
                     success: false,
-                    error: postAnswerFirstFailure || postAnswerSecondFailure || "Failed to verify MintPass"
+                    error: postAnswerFailure || "Failed to verify MintPass"
                 };
             },
             type
         }; // Plebbit accepts either Challenge or ChallengeResult
     }
-    const errorString = `Author (${publication.author.address}) failed MintPass verification. ` +
-        `First: ${firstFailure}, Second: ${secondFailure}`;
+    const errorString = `Author (${authorWalletAddress}) failed MintPass verification. ` +
+        `Error: ${firstFailure}`;
     console.log("MintPass challenge failed:", errorString);
     return {
         success: false,
-        error: firstFailure || secondFailure || "Failed to verify MintPass"
+        error: firstFailure || "Failed to verify MintPass"
     };
 };
 /**
  * Challenge file factory function
  */
-function ChallengeFileFactory(subplebbitChallengeSettings) {
-    const type = ("text/url-iframe");
+function ChallengeFileFactory({ challengeSettings }) {
+    const type = "url/iframe";
     return {
         getChallenge,
         optionInputs,
         type,
-        description,
-        challenge: "https://mintpass.org/request/{authorAddress}?hide-nft=true&hide-address=true"
+        description
     };
 }
 export default ChallengeFileFactory;

@@ -6,10 +6,28 @@ import type {
     SubplebbitChallengeSetting
 } from "@plebbit/plebbit-js/dist/node/subplebbit/types.js";
 import type {
-    PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest
+    PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest,
+    DecryptedChallengeRequestMessageTypeWithSubplebbitAuthor
 } from "@plebbit/plebbit-js/dist/node/pubsub-messages/types.js";
 import type { Plebbit } from "@plebbit/plebbit-js/dist/node/plebbit/plebbit.js";
-import { derivePublicationFromChallengeRequest } from "@plebbit/plebbit-js/dist/node/util.js";
+
+/**
+ * Extract the publication from a challenge request message.
+ * This function checks known publication fields (comment, vote, commentEdit, etc.) 
+ * and returns the first one found.
+ */
+function derivePublicationFromChallengeRequest(
+    request: DecryptedChallengeRequestMessageTypeWithSubplebbitAuthor
+): PublicationWithSubplebbitAuthorFromDecryptedChallengeRequest {
+    // Known publication field names from plebbit-js DecryptedChallengeRequestPublicationSchema
+    const publicationFields = ['comment', 'vote', 'commentEdit', 'commentModeration', 'subplebbitEdit'] as const;
+    for (const field of publicationFields) {
+        if ((request as any)[field]) {
+            return (request as any)[field];
+        }
+    }
+    throw Error("Failed to find publication on ChallengeRequest");
+}
 import { normalize } from "viem/ens";
 import { isAddress } from "viem";
 import envPaths from "env-paths";

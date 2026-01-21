@@ -1,6 +1,8 @@
-import type { ChallengeFile, SubplebbitChallengeSetting } from "@plebbit/plebbit-js/dist/node/subplebbit/types.js";
+import type { ChallengeFileInput, SubplebbitChallengeSetting } from "@plebbit/plebbit-js/dist/node/subplebbit/types.js";
 /**
  * Challenge file factory function
  */
-declare function ChallengeFileFactory(subplebbitChallengeSettings?: SubplebbitChallengeSetting): ChallengeFile;
+declare function ChallengeFileFactory({ challengeSettings }: {
+    challengeSettings: SubplebbitChallengeSetting;
+}): ChallengeFileInput;
 export default ChallengeFileFactory;

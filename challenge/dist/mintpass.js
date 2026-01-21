@@ -1,3 +1,18 @@
+/**
+ * Extract the publication from a challenge request message.
+ * This function checks known publication fields (comment, vote, commentEdit, etc.)
+ * and returns the first one found.
+ */
+function derivePublicationFromChallengeRequest(request) {
+    // Known publication field names from plebbit-js DecryptedChallengeRequestPublicationSchema
+    const publicationFields = ['comment', 'vote', 'commentEdit', 'commentModeration', 'subplebbitEdit'];
+    for (const field of publicationFields) {
+        if (request[field]) {
+            return request[field];
+        }
+    }
+    throw Error("Failed to find publication on ChallengeRequest");
+}
 import { normalize } from "viem/ens";
 import { isAddress } from "viem";
 import envPaths from "env-paths";
@@ -21,29 +36,6 @@ function getPlebbitAddressFromPublicKey(publicKey) {
     prefixedPublicKey.set(publicKeyBytes, protobufPublicKeyPrefix.length);
     const multihashBytes = createMultihash(multihashIdentityCode, prefixedPublicKey).bytes;
     return uint8ArrayToString(multihashBytes, "base58btc");
-}
-function derivePublicationFromChallengeRequest(challengeRequestMessage) {
-    // Support all publication kinds that can trigger a challenge
-    // Order does not really matter, but keep most common first
-    const possibleKeys = [
-        "comment",
-        "vote",
-        "commentEdit",
-        "commentModeration",
-        "subplebbitEdit"
-    ];
-    for (const key of possibleKeys) {
-        const maybe = challengeRequestMessage[key];
-        if (maybe && typeof maybe === "object") {
-            return maybe;
-        }
-    }
-    // Some implementations may place a generic `publication` field
-    const generic = challengeRequestMessage?.publication;
-    if (generic && typeof generic === "object") {
-        return generic;
-    }
-    return undefined;
 }
 // Challenge option inputs for subplebbit configuration
 const optionInputs = [
@@ -442,10 +434,9 @@ const getAuthorWalletAddress = (publication) => {
 /**
  * Main challenge function
  */
-const getChallenge = async (subplebbitChallengeSettings, challengeRequestMessage, challengeIndex, subplebbit // LocalSubplebbit type
-) => {
+const getChallenge = async ({ challengeSettings, challengeRequestMessage, subplebbit }) => {
     const { chainTicker = "base", contractAddress, requiredTokenType = "0", transferCooldownSeconds = "604800", // 1 week default
-    error, rpcUrl, bindToFirstAuthor = "true" } = subplebbitChallengeSettings?.options || {};
+    error, rpcUrl, bindToFirstAuthor = "true" } = challengeSettings?.options || {};
     // Apply sensible default contract address for supported chains if not provided
     const effectiveContractAddress = contractAddress || DEFAULT_CONTRACTS[chainTicker];
     if (!effectiveContractAddress) {
@@ -520,14 +511,13 @@ const getChallenge = async (subplebbitChallengeSettings, challengeRequestMessage
 /**
  * Challenge file factory function
  */
-function ChallengeFileFactory(subplebbitChallengeSettings) {
-    const type = ("url/iframe");
+function ChallengeFileFactory({ challengeSettings }) {
+    const type = "url/iframe";
     return {
         getChallenge,
         optionInputs,
         type,
-        description,
-        challenge: "https://mintpass.org/request/{authorAddress}?hide-nft=true&hide-address=true"
+        description
     };
 }
 export default ChallengeFileFactory;
