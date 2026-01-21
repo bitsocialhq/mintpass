@@ -62,5 +62,10 @@
     "authentication"
   ],
   "author": "Bitsocial Labs",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bitsocialhq/mintpass",
+    "directory": "challenge"
+  }
 }
