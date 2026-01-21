@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
 
 permissions:
   id-token: write # Required for npm trusted publishing (OIDC)
@@ -36,4 +38,4 @@ jobs:
         run: yarn test
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --access public --provenance
