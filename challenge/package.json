@@ -1,7 +1,7 @@
 {
   "name": "@mintpass/challenge",
   "version": "1.1.6",
-  "description": "MintPass plebbit-js challenge implementation",
+  "description": "MintPass pkc-js challenge implementation",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -53,12 +53,13 @@
     "typescript": "^5.6.3"
   },
   "keywords": [
-    "plebbit",
+    "bitsocial",
+    "pkc",
     "challenge",
     "nft",
     "mintpass",
     "authentication"
   ],
-  "author": "Plebbit Labs",
+  "author": "Bitsocial Labs",
   "license": "MIT"
 }
