@@ -73,7 +73,9 @@ jobs:
         run: |
           gh release create ${{ github.ref_name }} \
             --title "@mintpass/challenge ${{ github.ref_name }}" \
-            --notes-file challenge/RELEASE_NOTES.md
+            --notes-file challenge/RELEASE_NOTES.md \
+            --draft=false \
+            --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ${{ github.workspace }}
