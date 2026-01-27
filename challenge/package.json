@@ -35,7 +35,7 @@
     "keyv": "5.5.0",
     "multiformats": "^13.1.0",
     "uint8arrays": "^4.0.3",
-    "viem": "2.0.0"
+    "viem": "2.45.0"
   },
   "peerDependencies": {
     "@plebbit/plebbit-js": ">=0.0.0"

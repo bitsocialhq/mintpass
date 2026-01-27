@@ -47,7 +47,7 @@
     "@plebbit/plebbit-js": "https://github.com/plebbit/plebbit-js.git#a21d896bd55c76070758dae65dc0693d1c3726db",
     "env-paths": "^3.0.0",
     "keyv": "5.5.0",
-    "viem": "2.0.0"
+    "viem": "2.45.0"
   },
   "devDependencies": {
     "typescript": "^5.3.0"
