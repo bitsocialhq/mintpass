@@ -259,7 +259,10 @@ When proposing or implementing code changes, suggest a trackable issue:
 
 ## Bug Investigation (Mandatory First Step)
 
-If the user reports a bug in a specific file/line/area, check git history first before editing.
+A bug fix requires either a reproduction of the reported behavior or conclusive source/runtime evidence that identifies both the defect and the correct fix with equivalent certainty.
+If the bug cannot be reproduced and the evidence is not conclusive, do not guess or make speculative changes. Report what was checked, say that the bug was not reproduced, and ask for the missing reproduction details when useful.
+When proceeding from conclusive evidence without a reproduction, explain why the evidence is sufficient and add a targeted regression test when practical.
+If the user reports a bug in a specific file/line/area, also check git history before editing.
 
 1. Inspect recent commit titles scoped to the file:
    ```bash
