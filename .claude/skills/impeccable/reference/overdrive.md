@@ -14,7 +14,7 @@ Push an interface past conventional limits. This isn't just about visual effects
 This command has the highest potential to misfire. Do NOT jump straight into implementation. You MUST:
 
 1. **Think through 2-3 different directions**: consider different techniques, levels of ambition, and aesthetic approaches. For each direction, briefly describe what the result would look and feel like.
-2. **STOP and call the AskUserQuestion tool to clarify.** to present these directions and get the user's pick before writing any code. Explain trade-offs (browser support, performance cost, complexity).
+2. **STOP and use Codex's structured user-input/question tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.** to present these directions and get the user's pick before writing any code. Explain trade-offs (browser support, performance cost, complexity).
 3. Only proceed with the direction the user confirms.
 
 Skipping this step risks building something embarrassing that needs to be thrown away.
@@ -102,7 +102,6 @@ else if (canvas.getContext('webgl2')) { /* WebGL2 fallback */ }
 ### Performance rules
 
 - Target 60fps. If dropping below 50, simplify.
-- Respect `prefers-reduced-motion`, always. Provide a beautiful static alternative.
 - Lazy-initialize heavy resources (WebGL contexts, WASM modules) only when near viewport.
 - Pause off-screen rendering. Kill what you can't see.
 - Test on real mid-range devices, not just your development machine.
@@ -112,7 +111,6 @@ else if (canvas.getContext('webgl2')) { /* WebGL2 fallback */ }
 The gap between "cool" and "extraordinary" is in the last 20% of refinement: the easing curve on a spring animation, the timing offset in a staggered reveal, the subtle secondary motion that makes a transition feel physical. Don't ship the first version that works; ship the version that feels inevitable.
 
 **NEVER**:
-- Ignore `prefers-reduced-motion`. This is an accessibility requirement, not a suggestion
 - Ship effects that cause jank on mid-range devices
 - Use bleeding-edge APIs without a functional fallback
 - Add sound without explicit user opt-in
@@ -124,7 +122,6 @@ The gap between "cool" and "extraordinary" is in the last 20% of refinement: the
 - **The wow test**: Show it to someone who hasn't seen it. Do they react?
 - **The removal test**: Take it away. Does the experience feel diminished, or does nobody notice?
 - **The device test**: Run it on a phone, a tablet, a Chromebook. Still smooth?
-- **The accessibility test**: Enable reduced motion. Still beautiful?
 - **The context test**: Does this make sense for THIS brand and audience?
 
 "Technically extraordinary" isn't about using the newest API. It's about making an interface do something users didn't think a website could do.

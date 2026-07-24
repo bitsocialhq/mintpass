@@ -261,17 +261,6 @@ t('items', { count }) // Handles complex plural rules
 - Descriptive alt text
 - Semantic HTML
 
-**Motion sensitivity**:
-```css
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
-
 **High contrast mode**:
 - Test in Windows high contrast mode
 - Don't rely only on color
@@ -344,4 +333,4 @@ Test thoroughly with edge cases:
 - **Errors**: Force API errors, test all error states
 - **Empty**: Remove all data, test empty states
 
-When edge cases are covered, hand off to `/impeccable polish` for the final pass.
+When edge cases are covered, hand off to `$impeccable polish` for the final pass.
