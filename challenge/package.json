@@ -1,6 +1,6 @@
 {
   "name": "@bitsocial/mintpass-challenge",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "MintPass pkc-js challenge implementation",
   "type": "module",
   "main": "dist/index.js",
@@ -23,7 +23,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "corepack yarn build && ./scripts/test-with-node.sh",
+    "test": "corepack yarn test:unit && ./scripts/test-with-node.sh",
+    "test:unit": "corepack yarn build && node --test test/validate-challenge-settings.test.js",
     "test:manual": "corepack yarn build && cd ../contracts && corepack yarn hardhat test ../challenge/test/mintpass-integration.test.js --network localhost",
     "clean": "rm -rf dist/",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
@@ -39,7 +40,7 @@
     "viem": "2.45.0"
   },
   "devDependencies": {
-    "@pkcprotocol/pkc-js": "0.0.16",
+    "@pkcprotocol/pkc-js": "0.0.85",
     "@types/chai": "^4.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.7.8",

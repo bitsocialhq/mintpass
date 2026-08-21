@@ -517,6 +517,43 @@ const getChallenge = async ({ challengeSettings, challengeRequestMessage, commun
         error: firstFailure || "Failed to verify MintPass"
     };
 };
+// Boolean-like option values accepted by getChallenge ("true"/"1" are truthy, everything else is falsy).
+// Anything outside this set is almost certainly a typo that would silently read as false.
+const BOOLEAN_OPTION_VALUES = new Set(["true", "false", "1", "0"]);
+// Tickers that _getChainProviderWithSafety / createViemClientForChain can actually resolve.
+const SUPPORTED_CHAIN_TICKERS = new Set(["eth", "base"]);
+const MAX_TOKEN_TYPE = 65535; // tokenType is a uint16 in the MintPass ABI
+const isNonNegativeIntegerString = (value) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
+/**
+ * Semantic validation of challenge settings, run by pkc-js on community edit/create/start.
+ * Must stay sync and network-free. Presence of required options is enforced by pkc-js core
+ * via optionInputs; this hook checks that the values actually parse.
+ */
+const validateChallengeSettings = ({ challengeSettings }) => {
+    const options = challengeSettings.options || {};
+    const { chainTicker, contractAddress, requiredTokenType, transferCooldownSeconds, bindToFirstAuthor, noChallengeUrl } = options;
+    if (chainTicker !== undefined && !SUPPORTED_CHAIN_TICKERS.has(chainTicker)) {
+        throw Error(`Invalid option chainTicker "${chainTicker}": must be one of ${[...SUPPORTED_CHAIN_TICKERS].map((t) => `"${t}"`).join(", ")}`);
+    }
+    if (contractAddress !== undefined && !isAddress(contractAddress)) {
+        throw Error(`Invalid option contractAddress "${contractAddress}": must be a well-formed EVM address`);
+    }
+    if (requiredTokenType !== undefined && (!isNonNegativeIntegerString(requiredTokenType) || Number(requiredTokenType) > MAX_TOKEN_TYPE)) {
+        throw Error(`Invalid option requiredTokenType "${requiredTokenType}": must be an integer between 0 and ${MAX_TOKEN_TYPE}`);
+    }
+    if (transferCooldownSeconds !== undefined && !isNonNegativeIntegerString(transferCooldownSeconds)) {
+        throw Error(`Invalid option transferCooldownSeconds "${transferCooldownSeconds}": must be a non-negative integer`);
+    }
+    for (const [name, value] of [["bindToFirstAuthor", bindToFirstAuthor], ["noChallengeUrl", noChallengeUrl]]) {
+        if (value !== undefined && !BOOLEAN_OPTION_VALUES.has(value.toLowerCase())) {
+            throw Error(`Invalid option ${name} "${value}": must be one of "true", "false", "1", "0"`);
+        }
+    }
+    // rpcUrl commonly embeds a provider API key and is never needed by clients; refuse to publish it.
+    if (challengeSettings.publicOptions?.includes("rpcUrl")) {
+        throw Error('Option rpcUrl must not be in publicOptions: it may contain RPC provider credentials');
+    }
+};
 /**
  * Challenge file factory function
  */
@@ -526,7 +563,8 @@ function ChallengeFileFactory({ challengeSettings }) {
         getChallenge,
         optionInputs,
         type,
-        description
+        description,
+        validateChallengeSettings
     };
 }
 export default ChallengeFileFactory;
