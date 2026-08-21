@@ -88,9 +88,9 @@ All option values must be strings (pkc-js challenge convention). Options are val
 
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
-| `chainTicker` | yes | `"base"` | Chain where MintPass contract is deployed |
+| `chainTicker` | yes | `"base"` | Chain where MintPass contract is deployed; `"base"` or `"eth"` |
 | `contractAddress` | yes | Base Sepolia deployment | MintPass contract address; must be a well-formed EVM address |
-| `requiredTokenType` | yes | `"0"` | Required token type (0=SMS, 1=Email, 2+=future methods); non-negative integer |
+| `requiredTokenType` | yes | `"0"` | Required token type (0=SMS, 1=Email, 2+=future methods); integer 0–65535 |
 | `bindToFirstAuthor` | no | `"true"` | Bind each tokenId to the first author that uses it in this community (`"true"`/`"false"`/`"1"`/`"0"`) |
 | `noChallengeUrl` | no | `"false"` | Fail immediately when the NFT is missing instead of showing the mintpass.org iframe (`"true"`/`"false"`/`"1"`/`"0"`) |
 | `transferCooldownSeconds` | no | `"604800"` | Cooldown period after NFT transfer (1 week); non-negative integer |
