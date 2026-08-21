@@ -55,7 +55,6 @@ const createChallengeSettings = (contractAddress, chainProviderUrl, chainId, cha
   // Conditionally add custom RPC settings
   if (useCustomRpc) {
     options.rpcUrl = chainProviderUrl;
-    options.chainId = chainId.toString();
   }
   
   return {
@@ -229,7 +228,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -389,7 +388,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -481,7 +480,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -545,7 +544,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -629,7 +628,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -712,7 +711,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -808,7 +807,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -906,7 +905,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -986,7 +985,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1067,7 +1066,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1149,7 +1148,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1221,7 +1220,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1297,7 +1296,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1380,7 +1379,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1461,7 +1460,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -1497,7 +1496,9 @@ describe("MintPass Challenge Integration Test", function () {
       description: 'Testing mintpass challenge with invalid options'
     });
     
-    // Configure challenge with missing required options (contractAddress is missing)
+    // Configure challenge with missing required options (contractAddress is missing).
+    // pkc-js validates options against optionInputs on edit, so this must be rejected
+    // before the community ever starts.
     const settings = { ...community.settings };
     const invalidChallengeSettings = {
       path: path.resolve(__dirname, '../dist/mintpass.js'),
@@ -1509,72 +1510,18 @@ describe("MintPass Challenge Integration Test", function () {
       }
     };
     settings.challenges = [invalidChallengeSettings];
-    
+
     try {
-      await community.edit({ settings });
-      console.log("✅ Community configured with invalid challenge options");
-      
-      await community.start();
-      await waitForCondition(community, (s) => typeof s.updatedAt === "number");
-      console.log("✅ Community started and ready");
-
-      const comment = await pkcForPublishing.createComment({
-        signer: authorSigner,
-        communityAddress: community.address,
-        title: 'Test comment with invalid options',
-        content: 'This comment should fail due to invalid challenge options',
-        author: { 
-          wallets: {
-            eth: ethWallet
-          } 
-        }
-      });
-
-      let challengeVerificationReceived = false;
-      let challengeSuccessValue = null;
-      let challengeErrorsValue = null;
-      let publishingFailed = false;
-
-      comment.on('challengeverification', (challengeVerification) => {
-        console.log('✅ challengeverification received:', challengeVerification);
-        challengeSuccessValue = challengeVerification.challengeSuccess;
-        challengeErrorsValue = challengeVerification.challengeErrors;
-        challengeVerificationReceived = true;
-      });
-
-      comment.on('challenge', (challenge) => {
-        console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
-      });
-
-      comment.on('publishingstatechange', (state) => {
-        console.log(`📊 Publishing state: ${state}`);
-        if (state === 'failed') {
-          publishingFailed = true;
-        }
-      });
-
-      console.log("📤 Publishing comment...");
-      await comment.publish();
-      
-      // Wait for either challenge verification or publishing to fail
-      await waitForCondition({}, () => challengeVerificationReceived || publishingFailed, 30000);
-      
-      // Challenge should fail due to invalid configuration
-      if (challengeVerificationReceived) {
-        expect(challengeSuccessValue).to.be.false;
-        console.log("✅ Test 16 PASSED: Invalid challenge options correctly rejected");
-      } else {
-        console.log("✅ Test 16 PASSED: Publishing failed due to invalid challenge configuration");
+      let editError;
+      try {
+        await community.edit({ settings });
+      } catch (error) {
+        editError = error;
       }
-      
-    } catch (error) {
-      // Accept both timeout and contractAddress validation errors
-      if (error.message.includes('Condition not met within') || error.message.includes('contractAddress')) {
-        console.log("✅ Test 16 PASSED: Challenge setup failed due to missing required options or timeout");
-      } else {
-        throw error; // Re-throw unexpected errors
-      }
+      expect(editError, 'community.edit should reject missing required option').to.exist;
+      expect(editError.code).to.equal('ERR_CHALLENGE_SETTINGS_VALIDATION_FAILED_FOR_CHALLENGES');
+      expect(editError.details.failures[0].error.code).to.equal('ERR_CHALLENGE_REQUIRED_OPTION_MISSING');
+      console.log("✅ Test 16 PASSED: Missing required option rejected on edit");
     } finally {
       try {
         await community.stop();
@@ -1641,7 +1588,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment1.on('challenge', (challenge) => {
         console.log("✅ First attempt challenge received:", challenge);
-        comment1.publishChallengeAnswers(['test']);
+        comment1.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment1.publish();
@@ -1677,7 +1624,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment2.on('challenge', (challenge) => {
         console.log("✅ Second attempt challenge received:", challenge);
-        comment2.publishChallengeAnswers(['test']);
+        comment2.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment2.publish();
@@ -1751,7 +1698,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment1.on('challenge', (challenge) => {
         console.log("✅ First challenge received:", challenge);
-        comment1.publishChallengeAnswers(['test']);
+        comment1.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment1.publish();
@@ -1785,7 +1732,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment2.on('challenge', (challenge) => {
         console.log("✅ Second challenge received:", challenge);
-        comment2.publishChallengeAnswers(['test']);
+        comment2.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment2.publish();
@@ -1859,7 +1806,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment1.on('challenge', (challenge) => {
         console.log("✅ First challenge received:", challenge);
-        comment1.publishChallengeAnswers(['test']);
+        comment1.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment1.publish();
@@ -1895,7 +1842,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment2.on('challenge', (challenge) => {
         console.log("✅ Second challenge received:", challenge);
-        comment2.publishChallengeAnswers(['test']);
+        comment2.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment2.publish();
@@ -1999,7 +1946,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment1.on('challenge', (challenge) => {
         console.log("✅ First account challenge received:", challenge);
-        comment1.publishChallengeAnswers(['test']);
+        comment1.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment1.publish();
@@ -2033,7 +1980,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment2.on('challenge', (challenge) => {
         console.log("✅ Second account challenge received:", challenge);
-        comment2.publishChallengeAnswers(['test']);
+        comment2.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       await comment2.publish();
@@ -2102,7 +2049,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -2185,7 +2132,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       comment.on('challenge', (challenge) => {
         console.log("✅ challenge received:", challenge);
-        comment.publishChallengeAnswers(['test']);
+        comment.publishChallengeAnswers({ challengeAnswers: ['test'] });
       });
 
       comment.on('publishingstatechange', (state) => {
@@ -2268,7 +2215,7 @@ describe("MintPass Challenge Integration Test", function () {
       let received1 = false;
       let success1 = null;
       comment1.on('challengeverification', (cv) => { received1 = true; success1 = cv.challengeSuccess; });
-      comment1.on('challenge', () => comment1.publishChallengeAnswers(['test']));
+      comment1.on('challenge', () => comment1.publishChallengeAnswers({ challengeAnswers: ['test'] }));
       await comment1.publish();
       await waitForCondition({}, () => received1, 30000);
       expect(success1).to.be.true;
@@ -2286,7 +2233,7 @@ describe("MintPass Challenge Integration Test", function () {
       let success2 = null;
       let errors2 = null;
       comment2.on('challengeverification', (cv) => { received2 = true; success2 = cv.challengeSuccess; errors2 = cv.challengeErrors; });
-      comment2.on('challenge', () => comment2.publishChallengeAnswers(['test']));
+      comment2.on('challenge', () => comment2.publishChallengeAnswers({ challengeAnswers: ['test'] }));
       await comment2.publish();
       await waitForCondition({}, () => received2, 30000);
       expect(success2).to.be.false;
@@ -2330,7 +2277,7 @@ describe("MintPass Challenge Integration Test", function () {
       });
 
       let publishedCid = null;
-      comment.on('challenge', () => comment.publishChallengeAnswers(['test']));
+      comment.on('challenge', () => comment.publishChallengeAnswers({ challengeAnswers: ['test'] }));
       comment.on('challengeverification', (cv) => {
         // Prefer publication.cid, fallback to commentUpdate.cid as emitted by current pkc-js
         publishedCid = cv?.publication?.cid || cv?.commentUpdate?.cid || cv?.comment?.cid || null;
@@ -2349,7 +2296,7 @@ describe("MintPass Challenge Integration Test", function () {
 
       let voteVerificationReceived = false;
       let voteSuccess = null;
-      vote.on('challenge', () => vote.publishChallengeAnswers(['test']));
+      vote.on('challenge', () => vote.publishChallengeAnswers({ challengeAnswers: ['test'] }));
       vote.on('challengeverification', (cv) => { voteVerificationReceived = true; voteSuccess = cv.challengeSuccess; });
       await vote.publish();
       await waitForCondition({}, () => voteVerificationReceived, 30000);
@@ -2396,7 +2343,7 @@ describe("MintPass Challenge Integration Test", function () {
         author: { wallets: { eth: posterWallet } }
       });
       let publishedCid = null;
-      comment.on('challenge', () => comment.publishChallengeAnswers(['test']));
+      comment.on('challenge', () => comment.publishChallengeAnswers({ challengeAnswers: ['test'] }));
       comment.on('challengeverification', (cv) => {
         publishedCid = cv?.publication?.cid || cv?.commentUpdate?.cid || cv?.comment?.cid || null;
       });
@@ -2415,7 +2362,7 @@ describe("MintPass Challenge Integration Test", function () {
       let voteVerificationReceived = false;
       let voteSuccess = null;
       let voteErrors = null;
-      vote.on('challenge', () => vote.publishChallengeAnswers(['test']));
+      vote.on('challenge', () => vote.publishChallengeAnswers({ challengeAnswers: ['test'] }));
       vote.on('challengeverification', (cv) => { 
         voteVerificationReceived = true; 
         voteSuccess = cv.challengeSuccess; 
@@ -2490,7 +2437,7 @@ describe("MintPass Challenge Integration Test", function () {
       let received = false;
       let success = null;
       comment.on('challengeverification', (cv) => { received = true; success = cv.challengeSuccess; });
-      comment.on('challenge', () => comment.publishChallengeAnswers(['test']));
+      comment.on('challenge', () => comment.publishChallengeAnswers({ challengeAnswers: ['test'] }));
 
       console.log("📤 Publishing comment...");
       await comment.publish();
@@ -2550,7 +2497,7 @@ describe("MintPass Challenge Integration Test", function () {
         console.log('✅ challenge received (Test 27):', chal);
         await mintpass.connect(minter).mint(ethWallet.address, SMS_TOKEN_TYPE);
         // Answer with empty string as specified by backend dev
-        comment.publishChallengeAnswers(['']);
+        comment.publishChallengeAnswers({ challengeAnswers: [''] });
       });
 
       console.log("📤 Publishing comment (Test 27)...");

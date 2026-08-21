@@ -84,15 +84,25 @@ await community.edit({
 
 #### Challenge options
 
-All option values must be strings (pkc-js challenge convention).
+All option values must be strings (pkc-js challenge convention). Options are validated on community edit/create/start (pkc-js `>= 0.0.85`): `chainTicker`, `contractAddress` and `requiredTokenType` are required, unknown option keys are rejected, and malformed values fail the edit instead of silently rejecting every author.
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `chainTicker` | `"base"` | Chain where MintPass contract is deployed |
-| `contractAddress` | Known deployment per chain | If omitted and `chainTicker` is supported, defaults to the known MintPass deployment for that chain |
-| `requiredTokenType` | `"0"` | Required token type (0=SMS, 1=Email, 2+=future methods) |
-| `transferCooldownSeconds` | `"604800"` | Cooldown period after NFT transfer (1 week) |
-| `error` | Default message | Custom error message for users without NFT. Use `{authorAddress}` as a placeholder |
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `chainTicker` | yes | `"base"` | Chain where MintPass contract is deployed |
+| `contractAddress` | yes | Base Sepolia deployment | MintPass contract address; must be a well-formed EVM address |
+| `requiredTokenType` | yes | `"0"` | Required token type (0=SMS, 1=Email, 2+=future methods); non-negative integer |
+| `bindToFirstAuthor` | no | `"true"` | Bind each tokenId to the first author that uses it in this community (`"true"`/`"false"`/`"1"`/`"0"`) |
+| `noChallengeUrl` | no | `"false"` | Fail immediately when the NFT is missing instead of showing the mintpass.org iframe (`"true"`/`"false"`/`"1"`/`"0"`) |
+| `transferCooldownSeconds` | no | `"604800"` | Cooldown period after NFT transfer (1 week); non-negative integer |
+| `error` | no | Default message | Custom error message for users without NFT. Use `{authorAddress}` as a placeholder |
+| `rpcUrl` | no | Chain default | Custom RPC URL (mainly for testing). **Must not** be listed in `publicOptions`; the challenge rejects that since RPC URLs often embed provider API keys |
+
+#### Public options
+
+`publicOptions` controls which options are written into the published community record. Recommended for MintPass:
+
+- Publish `chainTicker`, `contractAddress`, `requiredTokenType` and `noChallengeUrl` so clients can tell authors up front which MintPass they need (and, with `noChallengeUrl`, that no iframe verification will be offered). Publishing `error`, `bindToFirstAuthor` and `transferCooldownSeconds` is harmless and explains rejections; that is the owner's call.
+- Never publish `rpcUrl`.
 
 ### With bitsocial-cli
 

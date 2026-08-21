@@ -517,6 +517,37 @@ const getChallenge = async ({ challengeSettings, challengeRequestMessage, commun
         error: firstFailure || "Failed to verify MintPass"
     };
 };
+// Boolean-like option values accepted by getChallenge ("true"/"1" are truthy, everything else is falsy).
+// Anything outside this set is almost certainly a typo that would silently read as false.
+const BOOLEAN_OPTION_VALUES = new Set(["true", "false", "1", "0"]);
+const isNonNegativeIntegerString = (value) => /^\d+$/.test(value);
+/**
+ * Semantic validation of challenge settings, run by pkc-js on community edit/create/start.
+ * Must stay sync and network-free. Presence of required options is enforced by pkc-js core
+ * via optionInputs; this hook checks that the values actually parse.
+ */
+const validateChallengeSettings = ({ challengeSettings }) => {
+    const options = challengeSettings.options || {};
+    const { contractAddress, requiredTokenType, transferCooldownSeconds, bindToFirstAuthor, noChallengeUrl } = options;
+    if (contractAddress !== undefined && !isAddress(contractAddress)) {
+        throw Error(`Invalid option contractAddress "${contractAddress}": must be a well-formed EVM address`);
+    }
+    if (requiredTokenType !== undefined && !isNonNegativeIntegerString(requiredTokenType)) {
+        throw Error(`Invalid option requiredTokenType "${requiredTokenType}": must be a non-negative integer`);
+    }
+    if (transferCooldownSeconds !== undefined && !isNonNegativeIntegerString(transferCooldownSeconds)) {
+        throw Error(`Invalid option transferCooldownSeconds "${transferCooldownSeconds}": must be a non-negative integer`);
+    }
+    for (const [name, value] of [["bindToFirstAuthor", bindToFirstAuthor], ["noChallengeUrl", noChallengeUrl]]) {
+        if (value !== undefined && !BOOLEAN_OPTION_VALUES.has(value.toLowerCase())) {
+            throw Error(`Invalid option ${name} "${value}": must be one of "true", "false", "1", "0"`);
+        }
+    }
+    // rpcUrl commonly embeds a provider API key and is never needed by clients; refuse to publish it.
+    if (challengeSettings.publicOptions?.includes("rpcUrl")) {
+        throw Error('Option rpcUrl must not be in publicOptions: it may contain RPC provider credentials');
+    }
+};
 /**
  * Challenge file factory function
  */
@@ -526,7 +557,8 @@ function ChallengeFileFactory({ challengeSettings }) {
         getChallenge,
         optionInputs,
         type,
-        description
+        description,
+        validateChallengeSettings
     };
 }
 export default ChallengeFileFactory;
